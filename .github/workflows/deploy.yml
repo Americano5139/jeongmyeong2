@@ -16,7 +16,7 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          docker build -t ${{ secrets.REGISTRY_USERNAME }}/$IMAGE_NAME:${{ github.sha }} ./docker
+          docker build -t ${{ secrets.REGISTRY_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} ./docker
 
       - name: Login to DockerHub
         run: |
@@ -24,12 +24,11 @@ jobs:
 
       - name: Push Docker Image
         run: |
-          docker push ${{ secrets.REGISTRY_USERNAME }}/$IMAGE_NAME:${{ github.sha }}
+          docker push ${{ secrets.REGISTRY_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-  deploy:
+  deploy:   # ← jobs: 의 하위로 정확히 정렬되어야 함!
     runs-on: self-hosted
     needs: build-and-push
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,4 +38,6 @@ jobs:
           sed -i "s|image: .*|image: ${{ secrets.REGISTRY_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}|" k8s/deployment.yaml
 
       - name: Deploy to Kubernetes
-
+        run: |
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
