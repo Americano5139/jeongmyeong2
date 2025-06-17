@@ -35,5 +35,5 @@ $CONFIG = array (
   'dbport' => '',
   'dbuser' => $rds_user,
   'dbpassword' => $rds_pass,
-  'installed' => false  // 초기 설치 시엔 false 또는 제거
+  'installed' => false 
 );
