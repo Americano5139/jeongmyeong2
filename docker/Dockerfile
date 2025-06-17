@@ -7,5 +7,5 @@ RUN apt-get update && apt-get install -y \
 
 COPY config.php /var/www/html/config/config.php
 
-RUN chown www-data:www-data /var/www/html/config/config.php && \
-    chmod 640 /var/www/html/config/config.php
+RUN chown -R www-data:www-data /var/www/html/config && \
+    chmod -R 750 /var/www/html/config
