@@ -11,10 +11,9 @@ $CONFIG = array(
   'instanceid' => 'ocabcdef1234',
   'passwordsalt' => 'randomsaltstring',
   'secret' => 'supersecretvalue',
-  'trusted_domains' =>
-  array (
+  'trusted_domains' => array(
     0 => 'localhost',
-    1 => '192.168.1.41',  # 필요 시 ALB 도메인 추가
+    1 => '192.168.1.41', # 필요 시 ALB 도메인 추가
   ),
   'datadirectory' => '/var/www/html/data',
   'dbtype' => 'mysql',
@@ -24,9 +23,11 @@ $CONFIG = array(
   'dbuser' => $rds_user,
   'dbpassword' => $rds_pass,
   'installed' => false,
+);
 
-  # 🔽 S3 연동 설정 (Primary storage)
-  'objectstore' => array(
+# ✅ S3 환경변수가 모두 설정되어 있으면 objectstore 설정 추가
+if ($aws_key && $aws_secret && $s3_bucket) {
+  $CONFIG['objectstore'] = array(
     'class' => '\\OC\\Files\\ObjectStore\\S3',
     'arguments' => array(
       'bucket' => $s3_bucket,
@@ -39,5 +40,5 @@ $CONFIG = array(
       'hostname' => 's3.ap-northeast-2.amazonaws.com',
       'port' => 443,
     ),
-  ),
-);
+  );
+}
