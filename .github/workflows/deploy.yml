@@ -14,21 +14,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      #   run: |
-      #     echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login -u "${{ secrets.REGISTRY_USERNAME }}" --password-stdin
-      #     docker push ${{ secrets.REGISTRY_USERNAME }}/nextcloud:${{ github.sha }}
-
   deploy-to-cluster:
     runs-on: self-hosted
     needs: build-and-push
-
     steps:
       - name: Clone project repo
         run: |
-          rm -rf project
           rm -rf ~/project
-          git clone https://github.com/Americano5139/jeongmyeong2.git ~/project
-        
+          git clone https://github.com/Americano5139/jeongmyeong2 ~/project
+
       - name: Create AWS secret
         run: |
           kubectl create secret generic aws-secret \
@@ -46,11 +40,8 @@ jobs:
             --from-literal=RDS_PASSWORD=${{ secrets.RDS_PASSWORD }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Apply Kubernetes Secrets
+      - name: Apply Kubernetes Deployment and Service
         run: |
-          kubectl apply -f ~/project/k8s/secret.yaml
-
-      - name: Run Ansible Playbook
-        run: |
-          ansible-playbook ~/project/ansible/playbook.yaml
+          kubectl apply -f ~/project/k8s/deployment.yaml
+          kubectl apply -f ~/project/k8s/service.yaml
 
