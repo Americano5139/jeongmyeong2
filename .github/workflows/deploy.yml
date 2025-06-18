@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 env:
-  NEXTCLOUD_VERSION: "31.0.5.1"
+  IMAGE_NAME: nextcloud
   AWS_REGION: "ap-northeast-2"
 
 jobs:
@@ -14,34 +14,39 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ secrets.REGISTRY_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} ./docker
+
+      - name: DockerHub 로그인 및 이미지 푸시
+        run: |
+          echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login -u "${{ secrets.REGISTRY_USERNAME }}" --password-stdin
+          docker push ${{ secrets.REGISTRY_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
   deploy-to-cluster:
     runs-on: self-hosted
     needs: build-and-push
     steps:
-      - name: Clone project repo
-        run: |
-          rm -rf ~/project
-          git clone https://github.com/Americano5139/jeongmyeong2 ~/project
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Create AWS secret
+      - name: Create nextcloud-secret
         run: |
-          kubectl create secret generic aws-secret \
+          kubectl create secret generic nextcloud-secret \
             --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
             --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
             --from-literal=S3_BUCKET=${{ secrets.S3_BUCKET }} \
-            --dry-run=client -o yaml | kubectl apply -f -
-
-      - name: Create RDS secret
-        run: |
-          kubectl create secret generic rds-secret \
             --from-literal=RDS_DB_NAME=${{ secrets.RDS_DB_NAME }} \
             --from-literal=RDS_HOST=${{ secrets.RDS_HOST }} \
             --from-literal=RDS_USERNAME=${{ secrets.RDS_USERNAME }} \
             --from-literal=RDS_PASSWORD=${{ secrets.RDS_PASSWORD }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Apply Kubernetes Deployment and Service
+      - name: Replace Docker image in deployment.yaml
         run: |
-          kubectl apply -f ~/project/k8s/deployment.yaml
-          kubectl apply -f ~/project/k8s/service.yaml
+          sed -i "s|image: .*|image: ${{ secrets.REGISTRY_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}|" k8s/deployment.yaml
 
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
