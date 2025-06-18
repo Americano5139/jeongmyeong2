@@ -1,4 +1,4 @@
-name: Deploy Nextcloud to Kubernetes
+name: CI/CD Deploy Nextcloud
 
 on:
   workflow_dispatch:
