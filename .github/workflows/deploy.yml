@@ -27,7 +27,7 @@ jobs:
         run: |
           rm -rf project
           rm -rf ~/project
-          git clone https://github.com/parkkyungin/project ~/project
+          git clone https://github.com/Americano5139/jeongmyeong2.git ~/project
         
       - name: Create AWS secret
         run: |
