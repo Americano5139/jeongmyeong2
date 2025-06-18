@@ -1,56 +1,58 @@
-name: CI/CD Build & Deploy
+name: Deploy Nextcloud to Kubernetes
 
 on:
-  push:
-    branches: [ main ]
+  workflow_dispatch:
 
 env:
-  IMAGE_NAME: nextcloud-test
+  NEXTCLOUD_VERSION: "31.0.5.1"
+  AWS_REGION: "ap-northeast-2"
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build Docker Image
-        run: |
-          docker build -t ${{ secrets.REGISTRY_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }} ./docker
+      # 이미 빌드된 이미지 사용하는 경우 아래 생략 가능
+      # - name: Build Docker image
+      #   run: |
+      #     docker build -t nextcloud-s3:${{ github.sha }} .
+      #     docker tag nextcloud-s3:${{ github.sha }} ${{ secrets.REGISTRY_USERNAME }}/nextcloud:${{ github.sha }}
 
-      - name: Login to DockerHub
-        run: |
-          echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login -u "${{ secrets.REGISTRY_USERNAME }}" --password-stdin
+      # - name: Log in and push to Docker Hub
+      #   run: |
+      #     echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login -u "${{ secrets.REGISTRY_USERNAME }}" --password-stdin
+      #     docker push ${{ secrets.REGISTRY_USERNAME }}/nextcloud:${{ github.sha }}
 
-      - name: Push Docker Image
-        run: |
-          docker push ${{ secrets.REGISTRY_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-
-  deploy:
+  deploy-to-cluster:
     runs-on: self-hosted
     needs: build-and-push
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Replace Image in YAML
+      - name: Clone project repo
         run: |
-          sed -i "s|image: .*|image: ${{ secrets.REGISTRY_USERNAME }}/${{ env.IMAGE_NAME }}:${{ github.sha }}|" k8s/deployment.yaml
-
-      - name: Create Kubernetes Secrets (for AWS & RDS)
+          rm -rf project
+          rm -rf ~/project
+          git clone https://github.com/parkkyungin/project ~/project
+        
+      - name: Render Kubernetes Secrets
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          RDS_DB_NAME: ${{ secrets.RDS_DB_NAME }}
+          RDS_HOST: ${{ secrets.RDS_HOST }}
+          RDS_USERNAME: ${{ secrets.RDS_USERNAME }}
+          RDS_PASSWORD: ${{ secrets.RDS_PASSWORD }}
         run: |
-          kubectl create secret generic nextcloud-secret \
-            --from-literal=AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
-            --from-literal=AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
-            --from-literal=S3_BUCKET=${{ secrets.S3_BUCKET }} \
-            --from-literal=RDS_DB_NAME=${{ secrets.RDS_DB_NAME }} \
-            --from-literal=RDS_HOST=${{ secrets.RDS_HOST }} \
-            --from-literal=RDS_USERNAME=${{ secrets.RDS_USERNAME }} \
-            --from-literal=RDS_PASSWORD=${{ secrets.RDS_PASSWORD }} \
-            --dry-run=client -o yaml | kubectl apply -f -
+          envsubst '${AWS_ACCESS_KEY_ID} ${AWS_SECRET_ACCESS_KEY} ${RDS_DB_NAME} ${RDS_HOST} ${RDS_USERNAME} ${RDS_PASSWORD}' \
+            < ~/project/k8s/secret-template.yaml > ~/project/k8s/secret.yaml
 
-      - name: Deploy to Kubernetes
+      - name: Apply Kubernetes Secrets
         run: |
-          kubectl apply -f k8s/deployment.yaml
-          kubectl apply -f k8s/service.yaml
+          kubectl apply -f ~/project/k8s/secret.yaml
+
+      - name: Run Ansible Playbook
+        run: |
+          ansible-playbook ~/project/ansible/playbook.yaml
 
