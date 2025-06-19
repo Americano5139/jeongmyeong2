@@ -11,23 +11,21 @@ output "ec2_public_ip" {
 }
 
 output "rds_endpoint" {
-  value = aws_db_instance.nextcloud.endpoint
+  value = module.rds.rds_endpoint
 }
 
 output "db_password" {
-  value = var.db_password
-  sensitive = true
+  value = module.rds.db_password
 }
 
 output "bucket_name" {
-  value = aws_s3_bucket.nextcloud.bucket
+  value = module.s3.bucket_name
 }
 
 output "s3_access_key" {
-  value = aws_iam_access_key.s3_access.id
+  value = module.s3.s3_access_key
 }
 
 output "s3_secret_key" {
-  value = aws_iam_access_key.s3_access.secret
-  sensitive = true
+  value = module.s3.s3_secret_key
 }
