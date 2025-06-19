@@ -25,7 +25,7 @@ variable "instance_type" {
 variable "ami_id" {
   description = "AMI ID to use for EC2"
   type        = string
-  default     = "ami-0ed99df77a82560e6" # Ubuntu 22.04 (서울 리전 기준)
+  default     = "ami-0ea4d4b8dc1e46212" # Ubuntu 22.04 (서울 리전 기준)
 }
 
 variable "key_name" {
