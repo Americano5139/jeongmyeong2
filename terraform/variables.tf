@@ -33,3 +33,19 @@ variable "key_name" {
   type        = string
 }
 
+variable "db_name" {
+  description = "RDS database name"
+  type        = string
+  default     = "nextcloud"
+}
+
+variable "db_user" {
+  description = "RDS admin username"
+  type        = string
+  default     = "nextcloud"
+}
+
+variable "db_password" {
+  description = "RDS admin password"
+  type        = string
+}
