@@ -22,7 +22,7 @@ $CONFIG = array(
   'dbport' => '',
   'dbuser' => $rds_user,
   'dbpassword' => $rds_pass,
-  'installed' => false,
+  'installed' => true,
 );
 
 # ✅ S3 환경변수가 모두 설정되어 있으면 objectstore 설정 추가
