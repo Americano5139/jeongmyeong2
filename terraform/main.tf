@@ -19,3 +19,16 @@ module "ec2" {
   vpc_id        = module.vpc.vpc_id
 }
 
+module "rds" {
+  source              = "./modules/rds"
+  db_name             = var.db_name
+  db_user             = var.db_user
+  db_password         = var.db_password
+  subnet_ids          = module.vpc.public_subnet_ids
+  vpc_security_group_ids = [module.vpc.default_sg_id]
+}
+
+module "s3" {
+  source              = "./modules/s3"
+  bucket_name         = var.bucket_name
+}
